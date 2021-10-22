@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1"/>
+		<style>
+			body
+			{
+				background-color: #111111;
+				margin: 0;
+				padding: 0;
+				width: 100%;
+				height: 100%;
+				text-align: center;
+				overflow: hidden;
+			}
+
+			.ClosedPopup
+			{
+				display: none;
+			}
+
+			.OpenPopup
+			{
+				position: absolute;
+			}
+
+			#popup
+			{
+				margin: 0;
+				padding: 0;
+				left: 0;
+				top: 0;
+				width: 100%;
+				height: 100%;
+				background-color: #11112270;
+			}
+
+			#container
+			{
+				margin: 10%;
+				height: 50%;
+			}
+
+			#source
+			{
+				height: 80%;
+				margin: 1%;
+				padding: 1%;
+				background-color: #333333;
+				color: #FFFFFF;
+				overflow-x: auto;
+				overflow-y: scroll;
+				text-align: left;
+				font-family: monospace;
+				white-space: pre-wrap;
+			}
+
+			@media (orientation: landscape)
+			{
+				#viewport
+				{
+					width: 100vh;
+					height: 100vh;
+				}
+			}
+
+			@media (orientation: portrait)
+			{
+				#viewport
+				{
+					width: 100vw;
+					height: 100vw;
+				}
+			}
+		</style>
+		<script>
+			let VirtualDevice = { Contexts: [], Substeps: 1000000, Drivers: {} };
+
+			VirtualDevice.CreatePort = function(getter, setter)
+			{
+				return function(value)
+				{
+					if (value === undefined)
+					{
+						return getter();
+					}
+					else
+					{
+						setter(value);
+					}
+				};
+			};
+
+			VirtualDevice.CreateContext = function(program, ports)
+			{
+				if (ports === undefined || ports === null) ports = {};
+
+				let result = {};
+				result.Program = program;
+				result.State = { IP: 0, Memory: {}, Registers: {}, Exit: false, Ports: ports };
+				return result;
+			};
+
+			VirtualDevice.ExecuteStep = function(context)
+			{
+				try
+				{
+					context.Program[context.State.IP](context.State);
+					context.State.IP++;
+					return !context.State.Exit;
+				}
+				catch (error)
+				{
+					console.error("Error during execution: " + error);
+					console.error(context);
+					return false;
+				}
+			};
+
+			VirtualDevice.ExecuteContexts = function()
+			{
+				VirtualDevice.Active = true;
+
+				for (let i = 0; i < VirtualDevice.Contexts.length; i++)
+				{
+					const context = VirtualDevice.Contexts[i];
+
+					for (let j = 0; j < VirtualDevice.Substeps; j++)
+					{
+						if (!VirtualDevice.ExecuteStep(context))
+						{
+							console.log("Context finished in " + (new Date() - context.StartTime) + "ms");
+							VirtualDevice.Contexts.splice(i, 1);
+							i--;
+							break;
+						}
+					}
+				}
+
+				VirtualDevice.API.Draw();
+
+				if (VirtualDevice.Contexts.length === 0)
+				{
+					VirtualDevice.Active = false;
+					console.log("VM is now idle");
+				}
+				else
+				{
+					setTimeout(VirtualDevice.ExecuteContexts, 0);
+				}
+			};
+
+			VirtualDevice.Execute = function(context)
+			{
+				if (!VirtualDevice.Contexts.includes(context))
+				{
+					context.StartTime = new Date();
+					VirtualDevice.Contexts.push(context);
+
+					if (!VirtualDevice.Active)
+					{
+						VirtualDevice.Active = true;
+						setTimeout(VirtualDevice.ExecuteContexts, 0);
+					}
+
+					console.log(VirtualDevice.Contexts.length + " active contexts");
+				}
+			};
+
+			VirtualDevice.Compile = function(source)
+			{
+				let result = { Errors: [], Warnings: [], Program: [] };
+				result.error = function(message)
+				{
+					result.Errors.push({ Message: message, Line: result.Line });
+				};
+				result.warn = function(message)
+				{
+					result.Warnings.push({ Message: message, Line: result.Line });
+				};
+
+				function IsString(value)
+				{
+					return typeof value === "string" || value instanceof String;
+				}
+
+				function Validate(array, allowPorts)
+				{
+					for (let i = 0; i < array.length; i++) if (array[i] === undefined || (!allowPorts && IsString(array[i]) && array[i].startsWith("%"))) return false;
+					return true;
+				}
+
+				function GetLoad(target, type)
+				{
+					const LoadA = {
+						REG: function(state, source)
+						{
+							state.A = state.Registers[source] || 0;
+						},
+						IMM: function(state, source)
+						{
+							state.A = source;
+						},
+						ZERO: function(state, source)
+						{
+							state.A = 0;
+						},
+						PORT: function(state, source)
+						{
+							state.A = source;
+						}
+					};
+
+					const LoadB = {
+						REG: function(state, source)
+						{
+							state.B = state.Registers[source] || 0;
+						},
+						IMM: function(state, source)
+						{
+							state.B = source;
+						},
+						ZERO: function(state, source)
+						{
+							state.B = 0;
+						},
+						PORT: function(state, source)
+						{
+							state.B = source;
+						}
+					};
+
+					const LoadO = {
+						REG: function(state, source)
+						{
+							state.O = state.Registers[source] || 0;
+						},
+						IMM: function(state, source)
+						{
+							state.O = source;
+						},
+						ZERO: function(state, source)
+						{
+							state.O = 0;
+						},
+						PORT: function(state, source)
+						{
+							state.O = source;
+						}
+					};
+
+					let load;
+					switch (target)
+					{
+						case "A":
+							load = LoadA[type];
+							break;
+						case "B":
+							load = LoadB[type];
+							break;
+						case "O":
+							load = LoadO[type];
+							break;
+						default:
+							result.error("URCL Compiler Bug: Unknown load target. \"" + target + "\"");
+							return null;
+					}
+
+					if (load === undefined)
+					{
+						result.error("Invalid URCL operand type: Expected one of " + JSON.stringify(Object.keys(LoadA)) + " but got \"" + type + "\"");
+						return null;
+					}
+					else
+					{
+						return load;
+					}
+				}
+
+				function GetStore(type)
+				{
+					const Store = {
+						REG: function(state, target)
+						{
+							state.Registers[target] = state.O || 0;
+						},
+						ZERO: function(state, target) {}
+					};
+
+					let store = Store[type];
+
+					if (store === undefined)
+					{
+						result.error("Invalid URCL operand type: Expected one of " + JSON.stringify(Object.keys(Store)) + " but got \"" + type + "\"");
+						return null;
+					}
+					else
+					{
+						return store;
+					}
+				}
+
+				const Operators = {
+					HLT: {
+						T: "Op",
+						F: function(state)
+						{
+							state.Exit = true;
+						}
+					},
+					ADD: {
+						T: "L2OpS1",
+						F: function(state)
+						{
+							state.O = state.A + state.B;
+						}
+					},
+					SUB: {
+						T: "L2OpS1",
+						F: function(state)
+						{
+							state.O = state.A - state.B;
+						}
+					},
+					MLT: {
+						T: "L2OpS1",
+						F: function(state)
+						{
+							state.O = state.A * state.B;
+						}
+					},
+					DIV: {
+						T: "L2OpS1",
+						F: function(state)
+						{
+							state.O = state.A / state.B;
+						}
+					},
+					MOD: {
+						T: "L2OpS1",
+						F: function(state)
+						{
+							state.O = state.A % state.B;
+						}
+					},
+					AND: {
+						T: "L2OpS1",
+						F: function(state)
+						{
+							state.O = state.A & state.B;
+						}
+					},
+					OR: {
+						T: "L2OpS1",
+						F: function(state)
+						{
+							state.O = state.A | state.B;
+						}
+					},
+					XOR: {
+						T: "L2OpS1",
+						F: function(state)
+						{
+							state.O = state.A ^ state.B;
+						}
+					},
+					NOT: {
+						T: "L1OpS1",
+						F: function(state)
+						{
+							state.O = ~state.A;
+						}
+					},
+					NEG: {
+						T: "L1OpS1",
+						F: function(state)
+						{
+							state.O = -state.A;
+						}
+					},
+					MOV: {
+						T: "L1OpS1",
+						F: function(state)
+						{
+							state.O = state.A;
+						}
+					},
+					IMM: {
+						T: "L1OpS1",
+						F: function(state)
+						{
+							state.O = state.A;
+						}
+					},
+					LOD: {
+						T: "L2Op",
+						F: function(state)
+						{
+							state.A = state.Memory[state.B] || 0;
+						}
+					},
+					STR: {
+						T: "L2Op",
+						F: function(state)
+						{
+							state.Memory[state.A] = state.B;
+						}
+					},
+					IN: {
+						T: "P1OpS1",
+						F: function(state)
+						{
+							if (state.O in state.Ports)
+							{
+								state.O = state.Ports[state.O]();
+							}
+							else
+							{
+								state.O = 0;
+							}
+						}
+					},
+					OUT: {
+						T: "L1OpP1",
+						F: function(state)
+						{
+							if (state.O in state.Ports)
+							{
+								state.Ports[state.O](state.A);
+							}
+						}
+					},
+					BRZ: {
+						T: "L2Op",
+						F: function(state)
+						{
+							if (state.B === 0) state.IP = state.A - 1;
+						}
+					},
+					BNZ: {
+						T: "L2Op",
+						F: function(state)
+						{
+							if (state.B !== 0) state.IP = state.A - 1;
+						}
+					},
+					BRE: {
+						T: "L3Op",
+						F: function(state)
+						{
+							if (state.A === state.B) state.IP = state.O - 1;
+						}
+					},
+					BNE: {
+						T: "L3Op",
+						F: function(state)
+						{
+							if (state.A !== state.B) state.IP = state.O - 1;
+						}
+					},
+					BRL: {
+						T: "L3Op",
+						F: function(state)
+						{
+							if (state.A < state.B) state.IP = state.O - 1;
+						}
+					},
+					BRG: {
+						T: "L3Op",
+						F: function(state)
+						{
+							if (state.A > state.B) state.IP = state.O - 1;
+						}
+					},
+					BLE: {
+						T: "L3Op",
+						F: function(state)
+						{
+							if (state.A <= state.B) state.IP = state.O - 1;
+						}
+					},
+					BGE: {
+						T: "L3Op",
+						F: function(state)
+						{
+							if (state.A >= state.B) state.IP = state.O - 1;
+						}
+					}
+				};
+
+				const OpTypes = {
+					L2OpS1: function(op, o, a, b)
+					{
+						if (!Validate([o, a, b]))
+						{
+							result.error("Invalid URCL Operands: Expected \"" + op + " OUT IN IN\".");
+							return null;
+						}
+
+						const l0 = a.Value;
+						const l1 = b.Value;
+						const s0 = o.Value;
+						const f0 = GetLoad("A", a.Type);
+						const f1 = GetLoad("B", b.Type);
+						const f2 = Operators[op].F;
+						const f3 = GetStore(o.Type);
+
+						return function(state)
+						{
+							f0(state, l0);
+							f1(state, l1);
+							f2(state);
+							f3(state, s0);
+						};
+					},
+					L1OpS1: function(op, o, a)
+					{
+						if (!Validate([o, a]))
+						{
+							result.error("Invalid URCL Operands: Expected \"" + op + " OUT IN\".");
+							return null;
+						}
+
+						const l0 = a.Value;
+						const s0 = o.Value;
+						const f0 = GetLoad("A", a.Type);
+						const f1 = Operators[op].F;
+						const f2 = GetStore(o.Type);
+
+						return function(state)
+						{
+							f0(state, l0);
+							f1(state);
+							f2(state, s0);
+						};
+					},
+					L1Op: function(op, a)
+					{
+						if (!Validate([a]))
+						{
+							result.error("Invalid URCL Operands: Expected \"" + op + " IN\".");
+							return null;
+						}
+
+						const l0 = a.Value;
+						const f0 = GetLoad("A", a.Type);
+						const f1 = Operators[op].F;
+
+						return function(state)
+						{
+							f0(state, l0);
+							f1(state);
+						};
+					},
+					L2Op: function(op, a, b)
+					{
+						if (!Validate([a, b]))
+						{
+							result.error("Invalid URCL Operands: Expected \"" + op + " IN IN\".");
+							return null;
+						}
+
+						const l0 = a.Value;
+						const l1 = b.Value;
+						const f0 = GetLoad("A", a.Type);
+						const f1 = GetLoad("B", b.Type);
+						const f2 = Operators[op].F;
+
+						return function(state)
+						{
+							f0(state, l0);
+							f1(state, l1);
+							f2(state);
+						};
+					},
+					L3Op: function(op, o, a, b)
+					{
+						if (!Validate([o, a, b]))
+						{
+							result.error("Invalid URCL Operands: Expected \"" + op + " IN IN IN\".");
+							return null;
+						}
+
+						const l0 = a.Value;
+						const l1 = b.Value;
+						const l2 = o.Value;
+						const f0 = GetLoad("A", a.Type);
+						const f1 = GetLoad("B", b.Type);
+						const f2 = GetLoad("O", o.Type);
+						const f3 = Operators[op].F;
+
+						return function(state)
+						{
+							f0(state, l0);
+							f1(state, l1);
+							f2(state, l2);
+							f3(state);
+						};
+					},
+					Op: function(op)
+					{
+						return Operators[op].F;
+					},
+					L1OpP1: function(op, p, a)
+					{
+						if (!(Validate([a]) && Validate([p], true)))
+						{
+							result.error("Invalid URCL Operands: Expected \"" + op + " OUTPORT IN\".");
+							return null;
+						}
+
+						const l0 = a.Value;
+						const p0 = p.Value;
+						const f0 = GetLoad("A", a.Type);
+						const f1 = GetLoad("O", p.Type);
+						const f2 = Operators[op].F;
+
+						return function(state)
+						{
+							f0(state, l0);
+							f1(state, p0);
+							f2(state);
+						};
+					},
+					P1OpS1: function(op, o, p)
+					{
+						if (!(Validate([o]) && Validate([p], true)))
+						{
+							result.error("Invalid URCL Operands: Expected \"" + op + " OUT INPORT\".");
+							return null;
+						}
+
+						const p0 = p.Value;
+						const s0 = o.Value;
+						const f0 = GetLoad("O", p.Type);
+						const f1 = Operators[op].F;
+						const f2 = GetStore(o.Type);
+
+						return function(state)
+						{
+							f0(state, p0);
+							f1(state);
+							f2(state, s0);
+						};
+					}
+				};
+
+				function ParseOperand(operand, labels)
+				{
+					if (operand === undefined) return undefined;
+					if (operand.length === 0)
+					{
+						result.error("Invalid URCL operand: Empty operand.");
+						return null;
+					}
+
+					let operandResult = { Type: null, Value: null };
+
+					if ("0123456789".includes(operand[0]))
+					{
+						const isHex = operand.toUpperCase().startsWith("0X");
+						const filter = isHex ? "0123456789ABCDEFabcdef" : "0123456789";
+
+						let invalid = false;
+						for (let i = 1; i < operand.length; i++)
+						{
+							if (!(filter.includes(operand[i]) || (isHex && i === 1 && operand[i].toUpperCase() === "X")))
+							{
+								invalid = true;
+								break;
+							}
+						}
+
+						operandResult.Type = "IMM";
+						operandResult.Value = parseInt(operand);
+						if (isNaN(operandResult.Value) || invalid)
+						{
+							result.error("Invalid URCL operand: Immediate is invalid. \"" + operand + "\"");
+							return null;
+						}
+					}
+					else if (operand[0] === ".")
+					{
+						operandResult.Type = "IMM";
+						operandResult.Value = labels[operand];
+						if (operandResult.Value === undefined)
+						{
+							result.error("Invalid URCL operand: Label is undefined. \"" + operand + "\"");
+							return null;
+						}
+					}
+					else if (operand[0] === "%")
+					{
+						operandResult.Type = "PORT";
+						operandResult.Value = operand;
+					}
+					else
+					{
+						operandResult.Type = "REG";
+						operandResult.Value = operand;
+						const index = parseInt(operand.substr(1, operand.length - 1));
+
+						if ((operand[0] !== "R" && operand[0] !== "r") || isNaN(index) || index < 0)
+						{
+							result.warn("URCL warning: Using non-standard register. \"" + operand + "\"");
+						}
+						else if (operand === "R0")
+						{
+							operandResult.Type = "ZERO";
+							operandResult.Value = 0;
+						}
+					}
+
+					return operandResult;
+				}
+
+				function ParseInstruction(instruction, labels)
+				{
+					const args = instruction.replace(/\,/g, " ").replace(/\s+/g, " ").split(" ");
+					const op = args[0].toUpperCase();
+					const arg1 = ParseOperand(args[1], labels);
+					const arg2 = ParseOperand(args[2], labels);
+					const arg3 = ParseOperand(args[3], labels);
+					if (arg1 === null || arg2 === null || arg3 === null) return null;
+					const operator = Operators[op];
+					if (operator === undefined)
+					{
+						result.error("URCL Instruction Error: Undefined instruction. \"" + op + "\"");
+						return null;
+					}
+					const opType = OpTypes[operator.T];
+					if (opType === undefined)
+					{
+						result.error("URCL Compiler Bug: Unknown OpType produced. Consider reporting this error. \"" + opType + "\"");
+						return null;
+					}
+					return opType(op, arg1, arg2, arg3);
+				}
+
+				let labels = {};
+				const lines = source.split("\n");
+
+				for (let i = 0; i < lines.length; i++)
+				{
+					let line = lines[i];
+					const comment = line.indexOf("//");
+					if (comment >= 0) line = line.substr(0, comment);
+					line = line.trim();
+
+					if (line.length === 0) continue;
+
+					if (line.startsWith(".") && !line.includes(" "))
+					{
+						labels[line] = result.Program.length;
+					}
+					else
+					{
+						result.Program.push({ Source: line, Line: i });
+					}
+				}
+
+				let invalid = false;
+				for (let i = 0; i < result.Program.length; i++)
+				{
+					result.Line = result.Program[i].Line;
+					const inst = ParseInstruction(result.Program[i].Source, labels);
+					
+					if (inst === null)
+					{
+						invalid = true;
+					}
+					else
+					{
+						result.Program[i] = inst;
+					}
+				}
+				result.Line = undefined;
+
+				result.Valid = result.Errors.length === 0;
+
+				return result;
+			};
+
+			VirtualDevice.CompileAndExecute = function(source)
+			{
+				const compiled = VirtualDevice.Compile(source);
+				if (!compiled.Valid) return false;
+				VirtualDevice.Execute(VirtualDevice.CreateContext(compiled.Program));
+				return true;
+			};
+
+			window.addEventListener("load", function(e)
+			{
+				const Width = 128;
+				const DPP = 4;
+				const Viewport = document.getElementById("viewport");
+				Viewport.width = Width * DPP;
+				Viewport.height = Width * DPP;
+
+				const GL = Viewport.getContext("webgl", { antialias: false });
+				if (GL === null)
+				{
+					alert("WebGL is required to run this web application.");
+					return;
+				}
+
+				const Colors = [ 0x000000, 0x1D2B53, 0x7E2553, 0x008751, 0xAB5236, 0x5F574F, 0xC2C3C7, 0xFFF1E8, 0xFF004D, 0xFFA300, 0xFFEC27, 0x00E436, 0x29ADFF, 0x83769C, 0xFF77A8, 0xFFCCAA ];
+
+				const ShaderProgram = GL.createProgram();
+				{
+					function ColorTable(colors)
+					{
+						if (colors.length === 0) return "gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);";
+
+						let result = "";
+
+						for (let i = 0; i < colors.length; i++)
+						{
+							let r = ((colors[i] >> 16) & 0xFF) / 255;
+							if (r === 0) r = "0.0";
+							else if (r === 1) r = "1.0";
+
+							let g = ((colors[i] >> 8) & 0xFF) / 255;
+							if (g === 0) g = "0.0";
+							else if (g === 1) g = "1.0";
+							
+							let b = (colors[i] & 0xFF) / 255;
+							if (b === 0) b = "0.0";
+							else if (b === 1) b = "1.0";
+
+							if (i == 0) result += "if";
+							else result += "else if";
+
+							result += " (UV.x >= " + i + ".0 && UV.x < " + (i + 1) + ".0) { gl_FragColor = vec4(" + r + ", " + g + ", " + b + ", 1.0); } "
+						}
+
+						result += "else { gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); }"
+
+						return result;
+					}
+
+					const VertexShader = "attribute vec2 vertex; attribute vec2 inUV; varying highp vec2 UV; void main() { gl_Position = vec4(vec3(vec2(1.0, -1.0) * ((vertex / (" + Width + ".0 / 2.0)) - 1.0), 0.0), 1.0); UV = inUV; }";
+					const FragmentShader = "varying highp vec2 UV; void main() { " + ColorTable(Colors) + " }";
+
+					function CompileShader(type, shader)
+					{
+						const result = GL.createShader(type);
+						GL.shaderSource(result, shader);
+						GL.compileShader(result);
+
+						if (!GL.getShaderParameter(result, GL.COMPILE_STATUS))
+						{
+							console.error("Shader Compile-Time Error: " + GL.getShaderInfoLog(result));
+							GL.deleteShader(result);
+							return;
+						}
+
+						GL.attachShader(ShaderProgram, result);
+					}
+
+					CompileShader(GL.VERTEX_SHADER, VertexShader);
+					CompileShader(GL.FRAGMENT_SHADER, FragmentShader);
+					GL.linkProgram(ShaderProgram);
+
+					if (!GL.getProgramParameter(ShaderProgram, GL.LINK_STATUS))
+					{
+						console.error("Shader Link-Time Error: " + GL.getProgramInfoLog(ShaderProgram));
+						return;
+					}
+
+					GL.useProgram(ShaderProgram);
+				}
+
+				let verticies = GL.createBuffer();
+				{
+					function CreatePixels(width)
+					{
+						function CreatePixel(x, y)
+						{
+							return [
+								x, y,
+								x, y + 1,
+								x + 1, y,
+								
+								x, y + 1,
+								x + 1, y + 1,
+								x + 1, y
+							];
+						}
+
+						let result = [];
+
+						for (let y = 0; y < width; y++)
+						{
+							for (let x = 0; x < width; x++)
+							{
+								const verts = CreatePixel(x, y);
+
+								for (let i = 0; i < verts.length; i++) result.push(verts[i]);
+							}
+						}
+
+						return result;
+					}
+
+					GL.bindBuffer(GL.ARRAY_BUFFER, verticies);
+					GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(CreatePixels(Width)), GL.STATIC_DRAW);
+				}
+
+				let uvs = GL.createBuffer();
+				{
+					function CreatePixels(width)
+					{
+						let result = [];
+
+						for (let y = 0; y < width; y++)
+						{
+							for (let x = 0; x < width; x++)
+							{
+								result.push(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+							}
+						}
+
+						return result;
+					}
+
+					GL.bindBuffer(GL.ARRAY_BUFFER, uvs);
+					GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(CreatePixels(Width)), GL.STATIC_DRAW);
+				}
+
+				GL.clearColor(0, 0, 0, 1);
+				GL.clear(GL.COLOR_BUFFER_BIT);
+
+				{
+					const VertexAttribute = GL.getAttribLocation(ShaderProgram, "vertex");
+					GL.bindBuffer(GL.ARRAY_BUFFER, verticies);
+					GL.vertexAttribPointer(VertexAttribute, 2, GL.FLOAT, false, 0, 0);
+					GL.enableVertexAttribArray(VertexAttribute);
+				}
+
+				{
+					const UVAttribute = GL.getAttribLocation(ShaderProgram, "inUV");
+					GL.bindBuffer(GL.ARRAY_BUFFER, uvs);
+					GL.vertexAttribPointer(UVAttribute, 2, GL.FLOAT, false, 0, 0);
+					GL.enableVertexAttribArray(UVAttribute);
+				}
+
+				GL.viewport(0, 0, Width * DPP, Width * DPP);
+
+				VirtualDevice.API = {};
+
+				VirtualDevice.API.SetPixels = function(x, y, colors)
+				{
+					x = Math.floor(Math.max(0, Math.min(Width - 1, x)));
+					y = Math.floor(Math.max(0, Math.min(Width - 1, y)));
+
+					let buffer = [];
+					for (let i = 0; i < colors.length; i++)
+					{
+						const c = Math.floor(Math.max(0, Math.min(Colors.length - 1, colors[i])));
+						buffer.push(c, 0, c, 0, c, 0, c, 0, c, 0, c, 0);
+					}
+
+					GL.bindBuffer(GL.ARRAY_BUFFER, uvs);
+					GL.bufferSubData(GL.ARRAY_BUFFER, ((y * Width) + x) * 48, new Float32Array(buffer));
+				};
+
+				VirtualDevice.API.Draw = function()
+				{
+					GL.drawArrays(GL.TRIANGLES, 0, Width * Width * 6);
+				};
+
+				for (let i = 0; i < Width * Width; i++)
+				{
+					const x = i % Width;
+					const y = Math.floor(i / Width);
+					VirtualDevice.API.SetPixels(x, y, [((i % (Width + 1)) / Width) * 16]);
+				}
+
+				VirtualDevice.API.Draw();
+
+				VirtualDevice.API.Ports = {
+					"%X": VirtualDevice.CreatePort(function()
+					{
+						return Width;
+					},
+					function(value)
+					{
+						VirtualDevice.Drivers.DRAWX = value;
+					}),
+					"%Y": VirtualDevice.CreatePort(function()
+					{
+						return Width;
+					},
+					function(value)
+					{
+						VirtualDevice.Drivers.DRAWY = value;
+					}),
+					"%COLOR": VirtualDevice.CreatePort(function()
+					{
+						return 0;
+					},
+					function(value)
+					{
+						VirtualDevice.API.SetPixels(VirtualDevice.Drivers.DRAWX || 0, VirtualDevice.Drivers.DRAWY || 0, [value]);
+					})
+				};
+			});
+
+			function ValidateSource(runAfterCompile)
+			{
+				const sourceText = document.getElementById("source");
+				let selection = window.getSelection();
+				let ranges = [];
+				for (let i = 0; i < selection.rangeCount; i++)
+				{
+					const range = selection.getRangeAt(i);
+					let line = Array.prototype.indexOf.call(sourceText.childNodes, range.startContainer);
+					if (line < 0) line = Array.prototype.indexOf.call(sourceText.childNodes, range.startContainer.parentElement);
+					if (line >= 0) ranges.push({ Line: line, Index: range.startOffset });
+				}
+
+				let lines = [];
+				for (let i = 0; i < sourceText.childNodes.length; i++)
+				{
+					const line = sourceText.childNodes[i].textContent;
+					if (line.includes("\n"))
+					{
+						const innerLines = line.split("\n");
+						for (let j = 0; j < innerLines; j++) lines.push(innerLines[j]);
+					}
+					else
+					{
+						lines.push(line);
+					}
+				}
+
+				const compiled = VirtualDevice.Compile(lines.join("\n"));
+
+				let errorMap = {};
+				for (let i = 0; i < compiled.Errors.length; i++) errorMap[compiled.Errors[i].Line] = compiled.Errors[i].Message;
+				let warnMap = {};
+				for (let i = 0; i < compiled.Warnings.length; i++) warnMap[compiled.Warnings[i].Line] = compiled.Warnings[i].Message;
+
+				sourceText.textContent = "";
+
+				let elements = [];
+				for (let i = 0; i < lines.length; i++)
+				{
+					const element = document.createElement("div");
+					element.textContent = lines[i];
+
+					if (errorMap[i] !== undefined)
+					{
+						element.style.textDecoration = "red wavy underline";
+						element.title = errorMap[i];
+					}
+					else if (warnMap[i] !== undefined)
+					{
+						element.style.textDecoration = "yellow wavy underline";
+						element.title = warnMap[i];
+					}
+
+					elements.push(element);
+					sourceText.appendChild(element);
+				}
+
+				selection = window.getSelection();
+				selection.removeAllRanges();
+				for (let i = 0; i < ranges.length; i++)
+				{
+					let range = document.createRange();
+					const index = ranges[i].Index;
+					const line = ranges[i].Line;
+					if (elements[line].childNodes.length > 0)
+					{
+						range.setStart(elements[line].childNodes[0], index);
+					}
+					else
+					{
+						range.setStart(elements[line], index);
+					}
+					selection.addRange(range);
+				}
+
+				if (runAfterCompile && compiled.Valid)
+				{
+					VirtualDevice.Execute(VirtualDevice.CreateContext(compiled.Program, VirtualDevice.API.Ports));
+				}
+			}
+
+			function SetPopup(visible)
+			{
+				if (visible)
+				{
+					document.getElementById("edit").className = "ClosedPopup";
+					document.getElementById("popup").className = "OpenPopup";
+				}
+				else
+				{
+					document.getElementById("edit").className = "OpenPopup";
+					document.getElementById("popup").className = "ClosedPopup";
+				}
+			}
+
+			window.addEventListener("load", function()
+			{
+				const lines = [
+					"// Demo Program - Fill the screen with a color.",
+					"imm R1, 0         //Set Index",
+					"in R2, %X         //Get Display Width",
+					"in R3, %Y         //Get Display Height",
+					"mlt R4, R2, R3    //Determine Total Pixels",
+					".loop             //Begin Loop",
+					"mod R5, R1, R2    //X From Index",
+					"div R6, R1, R3    //Y From Index",
+					"out %X, R5        //Set Draw X",
+					"out %Y, R6        //Set Draw Y",
+					"out %COLOR, 11    //Set Pixel With Color 11",
+					"add R1, R1, 1     //Increment Index",
+					"brl .loop, R1, R4 //Loop Until Done",
+					"hlt"
+				];
+
+				const sourceText = document.getElementById("source");
+				for (let i = 0; i < lines.length; i++)
+				{
+					const element = document.createElement("div");
+					element.innerText = lines[i];
+					sourceText.appendChild(element);
+				}
+
+				ValidateSource(false);
+			});
+		</script>
+	</head>
+	<body>
+		<canvas id="viewport"></canvas>
+		<button id="edit" class="OpenPopup" onclick="SetPopup(true)">Editor</button>
+		<div id="popup" class="ClosedPopup">
+			<div id="container">
+				<div id="source" contenteditable="true" spellcheck="false" oninput="ValidateSource(false)"></div>
+				<button onclick="ValidateSource(true)">Launch New Process</button>
+				<button onclick="SetPopup(false)">Close Editor</button>
+			</div>
+		</div>
+	</body>
+</html>
