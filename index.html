@@ -1118,6 +1118,16 @@
 					}
 				}*/
 
+				const oldMarkers = CodeEditor.session.getMarkers();
+				if (oldMarkers)
+				{
+					const markerKeys = Object.keys(oldMarkers);
+					for (let i = 0; i < markerKeys.length; i++)
+					{
+						CodeEditor.session.removeMarker(oldMarkers[markerKeys].id);
+					}
+				}
+
 				const lines = CodeEditor.getValue().split("\n");
 				const compiled = VirtualDevice.Compile(lines.join("\n"));
 
