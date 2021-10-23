@@ -2,18 +2,18 @@
 	"name": "URCL Console",
 	"short_name": "URCL Console",
 	"description": "A fantasy console powered by URCL.",
-	"start_url": "index.html",
+	"start_url": "/URCL-Console/index.html",
 	"display": "standalone",
 	"background_color": "#1E1E1E",
 	"theme_color": "#222222",
 	"icons": [
 		{
-			"src": "/icon-large.png",
+			"src": "/URCL-Console/icon-large.png",
 			"type": "image/png",
 			"sizes": "320x320"
 		},
 		{
-			"src": "/icon.png",
+			"src": "/URCL-Console/icon.png",
 			"type": "image/png",
 			"sizes": "32x32"
 		}
