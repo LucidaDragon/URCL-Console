@@ -31,8 +31,20 @@
 				position: absolute;
 			}
 
+			#sidebar
+			{
+				z-index: 1;
+				display: block;
+				left: 0;
+				top: 0;
+				margin-left: 0;
+				margin-top: 0;
+				margin-bottom: 0;
+			}
+
 			#popup
 			{
+				z-index: 2;
 				margin: 0;
 				padding: 0;
 				left: 0;
@@ -1174,47 +1186,58 @@
 			{
 				if (visible)
 				{
-					document.getElementById("edit").className = "ClosedPopup";
 					document.getElementById("popup").className = "OpenPopup";
 				}
 				else
 				{
-					document.getElementById("edit").className = "OpenPopup";
 					document.getElementById("popup").className = "ClosedPopup";
 				}
 			}
 
 			window.addEventListener("load", function()
 			{
-				const lines = [
-					"// Demo Program - Fill the screen with a color.",
-					"imm R1, 0         //Set Index",
-					"in R2, %X         //Get Display Width",
-					"in R3, %Y         //Get Display Height",
-					"mlt R4, R2, R3    //Determine Total Pixels",
-					".loop             //Begin Loop",
-					"mod R5, R1, R2    //X From Index",
-					"div R6, R1, R3    //Y From Index",
-					"out %X, R5        //Set Draw X",
-					"out %Y, R6        //Set Draw Y",
-					"out %COLOR, 11    //Set Pixel With Color 11",
-					"add R1, R1, 1     //Increment Index",
-					"brl .loop, R1, R4 //Loop Until Done",
-					"hlt"
-				];
+				const source = new URL(window.location).searchParams.get("source");
 
-				CodeEditor.setValue(lines.join("\n"));
+				if (source)
+				{
+					CodeEditor.setValue(source);
+				}
+				else
+				{
+					const lines = [
+						"// Demo Program - Fill the screen with a color.",
+						"imm R1, 0         //Set Index",
+						"in R2, %X         //Get Display Width",
+						"in R3, %Y         //Get Display Height",
+						"mlt R4, R2, R3    //Determine Total Pixels",
+						".loop             //Begin Loop",
+						"mod R5, R1, R2    //X From Index",
+						"div R6, R1, R3    //Y From Index",
+						"out %X, R5        //Set Draw X",
+						"out %Y, R6        //Set Draw Y",
+						"out %COLOR, 11    //Set Pixel With Color 11",
+						"add R1, R1, 1     //Increment Index",
+						"brl .loop, R1, R4 //Loop Until Done",
+						"hlt"
+					];
+
+					CodeEditor.setValue(lines.join("\n"));
+				}
+
 				CodeEditor.clearSelection();
 				CodeEditor.moveCursorTo(lines.length, lines[lines.length - 1].length);
-
-				ValidateSource(false);
+				
+				ValidateSource(source ? true : false);
 			});
 		</script>
 	</head>
 	<body>
 		<script src="https://pagecdn.io/lib/ace/1.4.12/ace.min.js" type="application/javascript"></script>
 		<canvas id="viewport"></canvas>
-		<button id="edit" class="OpenPopup" onclick="SetPopup(true)">Editor</button>
+		<div id="sidebar" class="OpenPopup">
+			<button id="edit" onclick="SetPopup(true)">Editor</button>
+			<button id="reload" onclick="window.location.reload()">Reload</button>
+		</div>
 		<div id="popup" class="ClosedPopup">
 			<div id="container">
 				<div id="source"></div>
