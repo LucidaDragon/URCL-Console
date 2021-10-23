@@ -11,7 +11,7 @@
 		<style>
 			body
 			{
-				background-color: #111111;
+				background-color: #222222;
 				margin: 0;
 				padding: 0;
 				width: 100%;
@@ -52,7 +52,7 @@
 				height: 80%;
 				margin: 1%;
 				padding: 1%;
-				background-color: #333333;
+				background-color: #1E1E1E;
 				color: #FFFFFF;
 				overflow-x: auto;
 				overflow-y: scroll;
@@ -1015,6 +1015,76 @@
 
 			function ValidateSource(runAfterCompile)
 			{
+				function FormatLine(element, line)
+				{
+					let parts = [];
+
+					function Aggregate(regex, chr, lastChr)
+					{
+						if (chr.match(regex))
+						{
+							if (lastChr.match(regex)) parts[parts.length - 1] += chr;
+							else parts.push(chr);
+						}
+					}
+
+					let last = "";
+					for (let i = 0; i < line.length; i++)
+					{
+						const current = line[i];
+						Aggregate(/\w|\d|\.|\%/, current, last);
+						Aggregate(/\s/, current, last);
+						Aggregate(/\,/, current, last);
+						Aggregate(/[^\w\d\.\s\,\%]/, current, last);
+						last = current;
+					}
+
+					let isFirstWord = true;
+					let isComment = false;
+					for (let i = 0; i < parts.length; i++)
+					{
+						const part = parts[i];
+						const child = document.createElement("span");
+						element.appendChild(child);
+						child.textContent = part;
+
+						if (part.startsWith("//") || isComment)
+						{
+							isComment = true;
+							child.style.color = "#6A9955";
+							child.textContent = part;
+							element.appendChild(child);
+						}
+						else
+						{
+							if (part.match(/(\w|\d|\.|\%)+/))
+							{
+								if (part.startsWith("."))
+								{
+									child.style.color = "#DCDCAA";
+								}
+								else if (isFirstWord)
+								{
+									child.style.color = "#569CD6";
+									isFirstWord = false;
+								}
+								else if (part.match(/(R|r)\d+/))
+								{
+									child.style.color = "#9CDCFE";
+								}
+								else if (part.match(/\d+/))
+								{
+									child.style.color = "#B5CEA8";
+								}
+								else if (part.match(/\%.+/))
+								{
+									child.style.color = "#4EC9B0";
+								}
+							}
+						}
+					}
+				}
+
 				const sourceText = document.getElementById("source");
 				let selection = window.getSelection();
 				let ranges = [];
@@ -1054,7 +1124,7 @@
 				for (let i = 0; i < lines.length; i++)
 				{
 					const element = document.createElement("div");
-					element.textContent = lines[i];
+					FormatLine(element, lines[i]);
 
 					if (errorMap[i] !== undefined)
 					{
