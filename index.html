@@ -462,6 +462,13 @@
 							}
 						}
 					},
+					JMP: {
+						T: "L1Op",
+						F: function(state)
+						{
+							state.IP = state.A - 1;
+						}
+					},
 					BRZ: {
 						T: "L2Op",
 						F: function(state)
