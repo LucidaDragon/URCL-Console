@@ -107,6 +107,9 @@
 			}
 		</style>
 		<script>
+			if ("serviceWorker" in navigator) navigator.serviceWorker.register("ServiceWorker.js");
+		</script>
+		<script>
 			let VirtualDevice = { Contexts: [], Substeps: 1000000, Drivers: {} };
 
 			VirtualDevice.CreatePort = function(getter, setter)
