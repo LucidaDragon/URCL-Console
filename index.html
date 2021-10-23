@@ -54,11 +54,37 @@
 				padding: 1%;
 				background-color: #1E1E1E;
 				color: #D4D4D4;
-				overflow-x: auto;
-				overflow-y: scroll;
 				text-align: left;
 				font-family: monospace;
 				white-space: pre-wrap;
+			}
+
+			.ace_gutter
+			{
+				background-color: #1E1E1E !important;
+				color: #D4D4D4 !important
+			}
+
+			.ace_gutter-active-line
+			{
+				background-color: #252525 !important;
+				color: #D4D4D4 !important
+			}
+
+			.ace_text-input
+			{
+				background-color: #1E1E1E !important;
+				color: #D4D4D4 !important;
+			}
+
+			.ace_cursor
+			{
+				color: #D4D4D4 !important;
+			}
+
+			.ace_selection
+			{
+				background-color: #1010A050 !important;
 			}
 
 			@media (orientation: landscape)
@@ -1015,7 +1041,7 @@
 
 			function ValidateSource(runAfterCompile)
 			{
-				function FormatLine(element, line)
+				/*function FormatLine(element, line)
 				{
 					let parts = [];
 
@@ -1083,34 +1109,9 @@
 							}
 						}
 					}
-				}
+				}*/
 
-				const sourceText = document.getElementById("source");
-				let selection = window.getSelection();
-				let ranges = [];
-				for (let i = 0; i < selection.rangeCount; i++)
-				{
-					const range = selection.getRangeAt(i);
-					let line = Array.prototype.indexOf.call(sourceText.childNodes, range.startContainer);
-					if (line < 0) line = Array.prototype.indexOf.call(sourceText.childNodes, range.startContainer.parentElement);
-					if (line >= 0) ranges.push({ Line: line, Index: range.startOffset });
-				}
-
-				let lines = [];
-				for (let i = 0; i < sourceText.childNodes.length; i++)
-				{
-					const line = sourceText.childNodes[i].textContent;
-					if (line.includes("\n"))
-					{
-						const innerLines = line.split("\n");
-						for (let j = 0; j < innerLines; j++) lines.push(innerLines[j]);
-					}
-					else
-					{
-						lines.push(line);
-					}
-				}
-
+				const lines = CodeEditor.getValue().split("\n");
 				const compiled = VirtualDevice.Compile(lines.join("\n"));
 
 				let errorMap = {};
@@ -1118,46 +1119,29 @@
 				let warnMap = {};
 				for (let i = 0; i < compiled.Warnings.length; i++) warnMap[compiled.Warnings[i].Line] = compiled.Warnings[i].Message;
 
-				sourceText.textContent = "";
-
-				let elements = [];
+				let annotations = [];
 				for (let i = 0; i < lines.length; i++)
 				{
-					const element = document.createElement("div");
-					FormatLine(element, lines[i]);
-
-					if (errorMap[i] !== undefined)
+					if (errorMap[i])
 					{
-						element.style.textDecoration = "red wavy underline";
-						element.title = errorMap[i];
+						annotations.push({
+							row: i,
+							column: 0,
+							text: errorMap[i],
+							type: "error"
+						});
 					}
-					else if (warnMap[i] !== undefined)
+					else if (warnMap[i])
 					{
-						element.style.textDecoration = "yellow wavy underline";
-						element.title = warnMap[i];
+						annotations.push({
+							row: i,
+							column: 0,
+							text: warnMap[i],
+							type: "warning"
+						});
 					}
-
-					elements.push(element);
-					sourceText.appendChild(element);
 				}
-
-				selection = window.getSelection();
-				selection.removeAllRanges();
-				for (let i = 0; i < ranges.length; i++)
-				{
-					let range = document.createRange();
-					const index = ranges[i].Index;
-					const line = ranges[i].Line;
-					if (elements[line].childNodes.length > 0)
-					{
-						range.setStart(elements[line].childNodes[0], index);
-					}
-					else
-					{
-						range.setStart(elements[line], index);
-					}
-					selection.addRange(range);
-				}
+				CodeEditor.session.setAnnotations(annotations);
 
 				if (runAfterCompile && compiled.Valid)
 				{
@@ -1198,24 +1182,34 @@
 					"hlt"
 				];
 
-				const sourceText = document.getElementById("source");
-				for (let i = 0; i < lines.length; i++)
-				{
-					const element = document.createElement("div");
-					element.innerText = lines[i];
-					sourceText.appendChild(element);
-				}
+				CodeEditor.setValue(lines.join("\n"));
+				CodeEditor.clearSelection();
+				CodeEditor.moveCursorTo(lines.length, lines[lines.length - 1].length);
 
 				ValidateSource(false);
 			});
 		</script>
 	</head>
 	<body>
+		<script src="https://pagecdn.io/lib/ace/1.4.12/ace.min.js" type="application/javascript"></script>
 		<canvas id="viewport"></canvas>
 		<button id="edit" class="OpenPopup" onclick="SetPopup(true)">Editor</button>
 		<div id="popup" class="ClosedPopup">
 			<div id="container">
-				<div id="source" contenteditable="true" spellcheck="false" oninput="ValidateSource(false)"></div>
+				<div id="source"></div>
+				<script>
+					ace.config.set("basePath", "https://pagecdn.io/lib/ace/1.4.12/");
+					CodeEditor = ace.edit("source", {
+						highlightActiveLine: false,
+						showPrintMargin: false
+					});
+					CodeEditor.session.on("change", function(delta)
+					{
+						ValidateSource(false);
+					});
+					//CodeEditor.setTheme("ace/theme/monokai");
+					//CodeEditor.session.setMode("ace/mode/javascript");
+				</script>
 				<button onclick="ValidateSource(true)">Launch New Process</button>
 				<button onclick="SetPopup(false)">Close Editor</button>
 			</div>
