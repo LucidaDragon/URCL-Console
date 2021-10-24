@@ -91,3 +91,8 @@ VirtualDevice.CompileAndExecute = function(source)
 	VirtualDevice.Execute(VirtualDevice.CreateContext(compiled.Program));
 	return true;
 };
+
+VirtualDevice.KillAll = function()
+{
+	VirtualDevice.Contexts = [];
+};
