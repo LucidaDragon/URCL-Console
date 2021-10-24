@@ -84,6 +84,34 @@ URCL.Operators = {
 			state.O = state.A ^ state.B;
 		}
 	},
+	BSL: {
+		T: "L2OpS1",
+		F: function(state)
+		{
+			state.O = state.A << state.B;
+		}
+	},
+	BSR: {
+		T: "L2OpS1",
+		F: function(state)
+		{
+			state.O = state.A >> state.B;
+		}
+	},
+	LSH: {
+		T: "L1OpS1",
+		F: function(state)
+		{
+			state.O = state.A << 1;
+		}
+	},
+	RSH: {
+		T: "L1OpS1",
+		F: function(state)
+		{
+			state.O = state.A >> 1;
+		}
+	},
 	NOT: {
 		T: "L1OpS1",
 		F: function(state)
@@ -116,14 +144,14 @@ URCL.Operators = {
 		T: "L2Op",
 		F: function(state)
 		{
-			state.A = state.Memory[state.B] || 0;
+			state.A = state.Memory[state.B & 0xFFFFFFFF] || 0;
 		}
 	},
 	STR: {
 		T: "L2Op",
 		F: function(state)
 		{
-			state.Memory[state.A] = state.B;
+			state.Memory[state.A & 0xFFFFFFFF] = state.B & 0xFFFFFFFF;
 		}
 	},
 	IN: {
@@ -330,7 +358,7 @@ URCL.Compile = function(source)
 		const Store = {
 			REG: function(state, target)
 			{
-				state.Registers[target] = state.O || 0;
+				state.Registers[target] = (state.O || 0) & 0xFFFFFFFF;
 			},
 			ZERO: function(state, target) {}
 		};
