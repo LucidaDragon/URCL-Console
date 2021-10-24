@@ -26,6 +26,11 @@ define("ace/mode/urcl_highlight_rules", ["require", "exports", "ace/lib/oop", "a
 					caseInsensitive: true
 				},
 				{
+					token: "constant.character",
+					regex: "\\b0b[01]+\\b",
+					caseInsensitive: true
+				},
+				{
 					token: "string.urcl",
 					regex: /'([^\\']|\\.)*'/
 				},

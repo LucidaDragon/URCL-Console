@@ -519,12 +519,13 @@ URCL.Compile = function(source)
 		if ("0123456789".includes(operand[0]))
 		{
 			const isHex = operand.toUpperCase().startsWith("0X");
-			const filter = isHex ? "0123456789ABCDEFabcdef" : "0123456789";
+			const isBin = operand.toUpperCase().startsWith("0B");
+			const filter = isHex ? "0123456789ABCDEFabcdef" : (isBin ? "01" : "0123456789");
 
 			let invalid = false;
 			for (let i = 1; i < operand.length; i++)
 			{
-				if (!(filter.includes(operand[i]) || (isHex && i === 1 && operand[i].toUpperCase() === "X")))
+				if (!(filter.includes(operand[i]) || ((isHex | isBin) && i === 1)))
 				{
 					invalid = true;
 					break;
@@ -532,7 +533,7 @@ URCL.Compile = function(source)
 			}
 
 			operandResult.Type = "IMM";
-			operandResult.Value = parseInt(operand);
+			operandResult.Value = parseInt((isHex || isBin) ? operand.substr(2, operand.length - 2) : operand, isHex ? 16 : (isBin ? 2 : 10));
 			if (isNaN(operandResult.Value) || invalid)
 			{
 				result.error("Invalid URCL operand: Immediate is invalid. \"" + operand + "\"");
