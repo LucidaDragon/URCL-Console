@@ -197,6 +197,11 @@ function CreateVirtualDisplay(canvasId)
 		VirtualDevice.API.Ports["%X"] = VirtualDevice.CreatePort(function() { return Width; }, function(value) { VirtualDevice.Drivers.DRAWX = value; });
 		VirtualDevice.API.Ports["%Y"] = VirtualDevice.CreatePort(function() { return Width; }, function(value) { VirtualDevice.Drivers.DRAWY = value; });
 		VirtualDevice.API.Ports["%COLOR"] = VirtualDevice.CreatePort(function() { return 0; }, function(value) { VirtualDevice.API.SetPixels(VirtualDevice.Drivers.DRAWX || 0, VirtualDevice.Drivers.DRAWY || 0, [value]); });
+		VirtualDevice.API.Ports["%BUFFER"] = VirtualDevice.CreatePort(function() { return 1; }, function(value)
+		{
+			VirtualDevice.API.Draw();
+			VirtualDevice.Drivers.HASDRAWN = true;
+		});
 
 		document.dispatchEvent(loadPortsEvent);
 		document.dispatchEvent(vdApiLoadedEvent);

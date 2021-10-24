@@ -3,15 +3,24 @@ VirtualDevice.Contexts = [];
 VirtualDevice.Substeps = 1000000;
 VirtualDevice.Drivers = {};
 VirtualDevice.Active = false;
+VirtualDevice.NextPID = 0;
 VirtualDevice.CreatePort = URCL.CreatePort;
 VirtualDevice.CreateState = URCL.CreateState;
 VirtualDevice.Compile = URCL.Compile;
+
+VirtualDevice.NewPID = function()
+{
+	const result = VirtualDevice.NextPID;
+	VirtualDevice.NextPID = (result + 1) & 0xFFFFFFFF;
+	return result;
+};
 
 VirtualDevice.CreateContext = function(program, ports)
 {
 	if (ports === undefined || ports === null) ports = {};
 
 	let result = {};
+	result.PID = VirtualDevice.NewPID();
 	result.Program = program;
 	result.State = VirtualDevice.CreateState();
 	result.State.Ports = ports;
@@ -54,7 +63,11 @@ VirtualDevice.ExecuteContexts = function()
 		}
 	}
 
-	if (VirtualDevice.API && VirtualDevice.API.Draw) VirtualDevice.API.Draw();
+	if (VirtualDevice.API && VirtualDevice.API.Draw && !VirtualDevice.Drivers.HASDRAWN)
+	{
+		VirtualDevice.API.Draw();
+		VirtualDevice.Drivers.HASDRAWN = false;
+	}
 
 	if (VirtualDevice.Contexts.length === 0)
 	{
