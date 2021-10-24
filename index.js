@@ -85,3 +85,10 @@ document.addEventListener("vdapiloaded", function()
 	
 	ValidateSource(source ? true : false);
 });
+
+function CopySourceLink()
+{
+	const url = new URL("https://lucidadragon.github.io/URCL-Console/");
+	url.searchParams.set("source", CodeEditor.getValue());
+	navigator.clipboard.writeText(url.toString());
+}
