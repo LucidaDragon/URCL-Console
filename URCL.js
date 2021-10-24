@@ -20,6 +20,201 @@ URCL.CreatePort = function(getter, setter)
 	};
 }
 
+URCL.Operators = {
+	HLT: {
+		T: "Op",
+		F: function(state)
+		{
+			state.Exit = true;
+		}
+	},
+	ADD: {
+		T: "L2OpS1",
+		F: function(state)
+		{
+			state.O = state.A + state.B;
+		}
+	},
+	SUB: {
+		T: "L2OpS1",
+		F: function(state)
+		{
+			state.O = state.A - state.B;
+		}
+	},
+	MLT: {
+		T: "L2OpS1",
+		F: function(state)
+		{
+			state.O = state.A * state.B;
+		}
+	},
+	DIV: {
+		T: "L2OpS1",
+		F: function(state)
+		{
+			state.O = state.A / state.B;
+		}
+	},
+	MOD: {
+		T: "L2OpS1",
+		F: function(state)
+		{
+			state.O = state.A % state.B;
+		}
+	},
+	AND: {
+		T: "L2OpS1",
+		F: function(state)
+		{
+			state.O = state.A & state.B;
+		}
+	},
+	OR: {
+		T: "L2OpS1",
+		F: function(state)
+		{
+			state.O = state.A | state.B;
+		}
+	},
+	XOR: {
+		T: "L2OpS1",
+		F: function(state)
+		{
+			state.O = state.A ^ state.B;
+		}
+	},
+	NOT: {
+		T: "L1OpS1",
+		F: function(state)
+		{
+			state.O = ~state.A;
+		}
+	},
+	NEG: {
+		T: "L1OpS1",
+		F: function(state)
+		{
+			state.O = -state.A;
+		}
+	},
+	MOV: {
+		T: "L1OpS1",
+		F: function(state)
+		{
+			state.O = state.A;
+		}
+	},
+	IMM: {
+		T: "L1OpS1",
+		F: function(state)
+		{
+			state.O = state.A;
+		}
+	},
+	LOD: {
+		T: "L2Op",
+		F: function(state)
+		{
+			state.A = state.Memory[state.B] || 0;
+		}
+	},
+	STR: {
+		T: "L2Op",
+		F: function(state)
+		{
+			state.Memory[state.A] = state.B;
+		}
+	},
+	IN: {
+		T: "P1OpS1",
+		F: function(state)
+		{
+			if (state.O in state.Ports)
+			{
+				state.O = state.Ports[state.O]();
+			}
+			else
+			{
+				state.O = 0;
+			}
+		}
+	},
+	OUT: {
+		T: "L1OpP1",
+		F: function(state)
+		{
+			if (state.O in state.Ports)
+			{
+				state.Ports[state.O](state.A);
+			}
+		}
+	},
+	JMP: {
+		T: "L1Op",
+		F: function(state)
+		{
+			state.IP = state.A - 1;
+		}
+	},
+	BRZ: {
+		T: "L2Op",
+		F: function(state)
+		{
+			if (state.B === 0) state.IP = state.A - 1;
+		}
+	},
+	BNZ: {
+		T: "L2Op",
+		F: function(state)
+		{
+			if (state.B !== 0) state.IP = state.A - 1;
+		}
+	},
+	BRE: {
+		T: "L3Op",
+		F: function(state)
+		{
+			if (state.A === state.B) state.IP = state.O - 1;
+		}
+	},
+	BNE: {
+		T: "L3Op",
+		F: function(state)
+		{
+			if (state.A !== state.B) state.IP = state.O - 1;
+		}
+	},
+	BRL: {
+		T: "L3Op",
+		F: function(state)
+		{
+			if (state.A < state.B) state.IP = state.O - 1;
+		}
+	},
+	BRG: {
+		T: "L3Op",
+		F: function(state)
+		{
+			if (state.A > state.B) state.IP = state.O - 1;
+		}
+	},
+	BLE: {
+		T: "L3Op",
+		F: function(state)
+		{
+			if (state.A <= state.B) state.IP = state.O - 1;
+		}
+	},
+	BGE: {
+		T: "L3Op",
+		F: function(state)
+		{
+			if (state.A >= state.B) state.IP = state.O - 1;
+		}
+	}
+};
+
 URCL.Compile = function(source)
 {
 	let result = { Errors: [], Warnings: [], Program: [] };
@@ -153,201 +348,6 @@ URCL.Compile = function(source)
 		}
 	}
 
-	const Operators = {
-		HLT: {
-			T: "Op",
-			F: function(state)
-			{
-				state.Exit = true;
-			}
-		},
-		ADD: {
-			T: "L2OpS1",
-			F: function(state)
-			{
-				state.O = state.A + state.B;
-			}
-		},
-		SUB: {
-			T: "L2OpS1",
-			F: function(state)
-			{
-				state.O = state.A - state.B;
-			}
-		},
-		MLT: {
-			T: "L2OpS1",
-			F: function(state)
-			{
-				state.O = state.A * state.B;
-			}
-		},
-		DIV: {
-			T: "L2OpS1",
-			F: function(state)
-			{
-				state.O = state.A / state.B;
-			}
-		},
-		MOD: {
-			T: "L2OpS1",
-			F: function(state)
-			{
-				state.O = state.A % state.B;
-			}
-		},
-		AND: {
-			T: "L2OpS1",
-			F: function(state)
-			{
-				state.O = state.A & state.B;
-			}
-		},
-		OR: {
-			T: "L2OpS1",
-			F: function(state)
-			{
-				state.O = state.A | state.B;
-			}
-		},
-		XOR: {
-			T: "L2OpS1",
-			F: function(state)
-			{
-				state.O = state.A ^ state.B;
-			}
-		},
-		NOT: {
-			T: "L1OpS1",
-			F: function(state)
-			{
-				state.O = ~state.A;
-			}
-		},
-		NEG: {
-			T: "L1OpS1",
-			F: function(state)
-			{
-				state.O = -state.A;
-			}
-		},
-		MOV: {
-			T: "L1OpS1",
-			F: function(state)
-			{
-				state.O = state.A;
-			}
-		},
-		IMM: {
-			T: "L1OpS1",
-			F: function(state)
-			{
-				state.O = state.A;
-			}
-		},
-		LOD: {
-			T: "L2Op",
-			F: function(state)
-			{
-				state.A = state.Memory[state.B] || 0;
-			}
-		},
-		STR: {
-			T: "L2Op",
-			F: function(state)
-			{
-				state.Memory[state.A] = state.B;
-			}
-		},
-		IN: {
-			T: "P1OpS1",
-			F: function(state)
-			{
-				if (state.O in state.Ports)
-				{
-					state.O = state.Ports[state.O]();
-				}
-				else
-				{
-					state.O = 0;
-				}
-			}
-		},
-		OUT: {
-			T: "L1OpP1",
-			F: function(state)
-			{
-				if (state.O in state.Ports)
-				{
-					state.Ports[state.O](state.A);
-				}
-			}
-		},
-		JMP: {
-			T: "L1Op",
-			F: function(state)
-			{
-				state.IP = state.A - 1;
-			}
-		},
-		BRZ: {
-			T: "L2Op",
-			F: function(state)
-			{
-				if (state.B === 0) state.IP = state.A - 1;
-			}
-		},
-		BNZ: {
-			T: "L2Op",
-			F: function(state)
-			{
-				if (state.B !== 0) state.IP = state.A - 1;
-			}
-		},
-		BRE: {
-			T: "L3Op",
-			F: function(state)
-			{
-				if (state.A === state.B) state.IP = state.O - 1;
-			}
-		},
-		BNE: {
-			T: "L3Op",
-			F: function(state)
-			{
-				if (state.A !== state.B) state.IP = state.O - 1;
-			}
-		},
-		BRL: {
-			T: "L3Op",
-			F: function(state)
-			{
-				if (state.A < state.B) state.IP = state.O - 1;
-			}
-		},
-		BRG: {
-			T: "L3Op",
-			F: function(state)
-			{
-				if (state.A > state.B) state.IP = state.O - 1;
-			}
-		},
-		BLE: {
-			T: "L3Op",
-			F: function(state)
-			{
-				if (state.A <= state.B) state.IP = state.O - 1;
-			}
-		},
-		BGE: {
-			T: "L3Op",
-			F: function(state)
-			{
-				if (state.A >= state.B) state.IP = state.O - 1;
-			}
-		}
-	};
-
 	const OpTypes = {
 		L2OpS1: function(op, o, a, b)
 		{
@@ -362,7 +362,7 @@ URCL.Compile = function(source)
 			const s0 = o.Value;
 			const f0 = GetLoad("A", a.Type);
 			const f1 = GetLoad("B", b.Type);
-			const f2 = Operators[op].F;
+			const f2 = URCL.Operators[op].F;
 			const f3 = GetStore(o.Type);
 
 			return function(state)
@@ -384,7 +384,7 @@ URCL.Compile = function(source)
 			const l0 = a.Value;
 			const s0 = o.Value;
 			const f0 = GetLoad("A", a.Type);
-			const f1 = Operators[op].F;
+			const f1 = URCL.Operators[op].F;
 			const f2 = GetStore(o.Type);
 
 			return function(state)
@@ -404,7 +404,7 @@ URCL.Compile = function(source)
 
 			const l0 = a.Value;
 			const f0 = GetLoad("A", a.Type);
-			const f1 = Operators[op].F;
+			const f1 = URCL.Operators[op].F;
 
 			return function(state)
 			{
@@ -424,7 +424,7 @@ URCL.Compile = function(source)
 			const l1 = b.Value;
 			const f0 = GetLoad("A", a.Type);
 			const f1 = GetLoad("B", b.Type);
-			const f2 = Operators[op].F;
+			const f2 = URCL.Operators[op].F;
 
 			return function(state)
 			{
@@ -447,7 +447,7 @@ URCL.Compile = function(source)
 			const f0 = GetLoad("A", a.Type);
 			const f1 = GetLoad("B", b.Type);
 			const f2 = GetLoad("O", o.Type);
-			const f3 = Operators[op].F;
+			const f3 = URCL.Operators[op].F;
 
 			return function(state)
 			{
@@ -459,7 +459,7 @@ URCL.Compile = function(source)
 		},
 		Op: function(op)
 		{
-			return Operators[op].F;
+			return URCL.Operators[op].F;
 		},
 		L1OpP1: function(op, p, a)
 		{
@@ -473,7 +473,7 @@ URCL.Compile = function(source)
 			const p0 = p.Value;
 			const f0 = GetLoad("A", a.Type);
 			const f1 = GetLoad("O", p.Type);
-			const f2 = Operators[op].F;
+			const f2 = URCL.Operators[op].F;
 
 			return function(state)
 			{
@@ -493,7 +493,7 @@ URCL.Compile = function(source)
 			const p0 = p.Value;
 			const s0 = o.Value;
 			const f0 = GetLoad("O", p.Type);
-			const f1 = Operators[op].F;
+			const f1 = URCL.Operators[op].F;
 			const f2 = GetStore(o.Type);
 
 			return function(state)
@@ -582,7 +582,7 @@ URCL.Compile = function(source)
 		const arg2 = ParseOperand(args[2], labels);
 		const arg3 = ParseOperand(args[3], labels);
 		if (arg1 === null || arg2 === null || arg3 === null) return null;
-		const operator = Operators[op];
+		const operator = URCL.Operators[op];
 		if (operator === undefined)
 		{
 			result.error("URCL Instruction Error: Undefined instruction. \"" + op + "\"");

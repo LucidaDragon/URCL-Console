@@ -8,293 +8,19 @@
 		<meta name="og:title" content="URCL Console"/>
 		<meta name="og:type" content="website"/>
 		<meta name="og:image" content="https://lucidadragon.github.io/URCL-Console/icon-large.png"/>
+		<meta name="og:description" content="A fantasy console powered by URCL.">
 		<link rel="icon" type="image/png" href="https://lucidadragon.github.io/URCL-Console/icon.png"/>
-		<style>
-			body
-			{
-				background-color: #222222;
-				margin: 0;
-				padding: 0;
-				width: 100%;
-				height: 100%;
-				text-align: center;
-				overflow: hidden;
-			}
-
-			.ClosedPopup
-			{
-				display: none;
-			}
-
-			.OpenPopup
-			{
-				position: absolute;
-			}
-
-			#sidebar
-			{
-				z-index: 1;
-				display: block;
-				left: 0;
-				top: 0;
-				margin-left: 0;
-				margin-top: 0;
-				margin-bottom: 0;
-			}
-
-			#popup
-			{
-				z-index: 2;
-				margin: 0;
-				padding: 0;
-				left: 0;
-				top: 0;
-				width: 100%;
-				height: 100%;
-				background-color: #11112270;
-			}
-
-			#container
-			{
-				margin: 10%;
-				height: 50%;
-			}
-
-			#source
-			{
-				height: 80%;
-				margin: 1%;
-				padding: 1%;
-				background-color: #1E1E1E;
-				color: #D4D4D4;
-				text-align: left;
-				font-family: monospace;
-				white-space: pre-wrap;
-			}
-
-			.ace_gutter
-			{
-				background-color: #1E1E1E !important;
-				color: #D4D4D4 !important
-			}
-
-			.ace_gutter-active-line
-			{
-				background-color: #252525 !important;
-				color: #D4D4D4 !important
-			}
-
-			.ace_text-input
-			{
-				background-color: #1E1E1E !important;
-				color: #D4D4D4 !important;
-			}
-
-			.ace_cursor
-			{
-				color: #D4D4D4 !important;
-			}
-
-			.ace_selection
-			{
-				background-color: #1010A050 !important;
-			}
-
-			@media (orientation: landscape)
-			{
-				#viewport
-				{
-					width: 100vh;
-					height: 100vh;
-				}
-			}
-
-			@media (orientation: portrait)
-			{
-				#viewport
-				{
-					width: 100vw;
-					height: 100vw;
-				}
-			}
-		</style>
+		<link rel="stylesheet" type="text/css" href="index.css">
+		<link rel="stylesheet" type="text/css" href="URCL.css">
 		<script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("ServiceWorker.js");</script>
 		<script src="URCL.js" type="application/javascript"></script>
 		<script src="VirtualDevice.js" type="application/javascript"></script>
 		<script src="VirtualDisplay.js" type="application/javascript"></script>
+		<script src="./ace/ace.min.js" type="application/javascript"></script>
 		<script>CreateVirtualDisplay("viewport");</script>
-		<script>
-			function ValidateSource(runAfterCompile)
-			{
-				/*function FormatLine(element, line)
-				{
-					let parts = [];
-
-					function Aggregate(regex, chr, lastChr)
-					{
-						if (chr.match(regex))
-						{
-							if (lastChr.match(regex)) parts[parts.length - 1] += chr;
-							else parts.push(chr);
-						}
-					}
-
-					let last = "";
-					for (let i = 0; i < line.length; i++)
-					{
-						const current = line[i];
-						Aggregate(/\w|\d|\.|\%/, current, last);
-						Aggregate(/\s/, current, last);
-						Aggregate(/\,/, current, last);
-						Aggregate(/[^\w\d\.\s\,\%]/, current, last);
-						last = current;
-					}
-
-					let isFirstWord = true;
-					let isComment = false;
-					for (let i = 0; i < parts.length; i++)
-					{
-						const part = parts[i];
-						const child = document.createElement("span");
-						element.appendChild(child);
-						child.textContent = part;
-
-						if (part.startsWith("//") || isComment)
-						{
-							isComment = true;
-							child.style.color = "#6A9955";
-							child.textContent = part;
-							element.appendChild(child);
-						}
-						else
-						{
-							if (part.match(/(\w|\d|\.|\%)+/))
-							{
-								if (part.startsWith("."))
-								{
-									child.style.color = "#DCDCAA";
-								}
-								else if (isFirstWord)
-								{
-									child.style.color = "#569CD6";
-									isFirstWord = false;
-								}
-								else if (part.match(/(R|r)\d+/))
-								{
-									child.style.color = "#9CDCFE";
-								}
-								else if (part.match(/\d+/))
-								{
-									child.style.color = "#B5CEA8";
-								}
-								else if (part.match(/\%.+/))
-								{
-									child.style.color = "#4EC9B0";
-								}
-							}
-						}
-					}
-				}*/
-
-				const oldMarkers = CodeEditor.session.getMarkers();
-				if (oldMarkers)
-				{
-					const markerKeys = Object.keys(oldMarkers);
-					for (let i = 0; i < markerKeys.length; i++)
-					{
-						CodeEditor.session.removeMarker(oldMarkers[markerKeys].id);
-					}
-				}
-
-				const lines = CodeEditor.getValue().split("\n");
-				const compiled = VirtualDevice.Compile(lines.join("\n"));
-
-				let errorMap = {};
-				for (let i = 0; i < compiled.Errors.length; i++) errorMap[compiled.Errors[i].Line] = compiled.Errors[i].Message;
-				let warnMap = {};
-				for (let i = 0; i < compiled.Warnings.length; i++) warnMap[compiled.Warnings[i].Line] = compiled.Warnings[i].Message;
-
-				let annotations = [];
-				for (let i = 0; i < lines.length; i++)
-				{
-					if (errorMap[i])
-					{
-						annotations.push({
-							row: i,
-							column: 0,
-							text: errorMap[i],
-							type: "error"
-						});
-					}
-					else if (warnMap[i])
-					{
-						annotations.push({
-							row: i,
-							column: 0,
-							text: warnMap[i],
-							type: "warning"
-						});
-					}
-				}
-				CodeEditor.session.setAnnotations(annotations);
-
-				if (runAfterCompile && compiled.Valid)
-				{
-					VirtualDevice.Execute(VirtualDevice.CreateContext(compiled.Program, VirtualDevice.API.Ports));
-				}
-			}
-
-			function SetPopup(visible)
-			{
-				if (visible)
-				{
-					document.getElementById("popup").className = "OpenPopup";
-				}
-				else
-				{
-					document.getElementById("popup").className = "ClosedPopup";
-				}
-			}
-
-			document.addEventListener("vdapiloaded", function()
-			{
-				const source = new URL(window.location).searchParams.get("source");
-
-				let lines;
-				if (source)
-				{
-					lines = source.split("\n");
-				}
-				else
-				{
-					lines = [
-						"// Demo Program - Fill the screen with a color.",
-						"imm R1, 0         //Set Index",
-						"in R2, %X         //Get Display Width",
-						"in R3, %Y         //Get Display Height",
-						"mlt R4, R2, R3    //Determine Total Pixels",
-						".loop             //Begin Loop",
-						"mod R5, R1, R2    //X From Index",
-						"div R6, R1, R3    //Y From Index",
-						"out %X, R5        //Set Draw X",
-						"out %Y, R6        //Set Draw Y",
-						"out %COLOR, 11    //Set Pixel With Color 11",
-						"add R1, R1, 1     //Increment Index",
-						"brl .loop, R1, R4 //Loop Until Done",
-						"hlt"
-					];
-				}
-
-				CodeEditor.setValue(lines.join("\n"));
-				CodeEditor.clearSelection();
-				CodeEditor.moveCursorTo(lines.length, lines[lines.length - 1].length);
-				
-				ValidateSource(source ? true : false);
-			});
-		</script>
+		<script src="index.js" type="application/javascript"></script>
 	</head>
 	<body>
-		<script src="https://pagecdn.io/lib/ace/1.4.12/ace.min.js" type="application/javascript"></script>
 		<canvas id="viewport"></canvas>
 		<div id="sidebar" class="OpenPopup">
 			<button id="edit" onclick="SetPopup(true)">Editor</button>
@@ -304,7 +30,7 @@
 			<div id="container">
 				<div id="source"></div>
 				<script>
-					ace.config.set("basePath", "https://pagecdn.io/lib/ace/1.4.12/");
+					ace.config.set("basePath", "./ace/");
 					CodeEditor = ace.edit("source", {
 						highlightActiveLine: false,
 						showPrintMargin: false
@@ -313,8 +39,8 @@
 					{
 						ValidateSource(false);
 					});
-					//CodeEditor.setTheme("ace/theme/monokai");
-					//CodeEditor.session.setMode("ace/mode/javascript");
+					CodeEditor.setTheme("ace/theme/vscode");
+					CodeEditor.session.setMode("ace/mode/urcl");
 				</script>
 				<button onclick="ValidateSource(true)">Launch New Process</button>
 				<button onclick="SetPopup(false)">Close Editor</button>

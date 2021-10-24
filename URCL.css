@@ -1,0 +1,138 @@
+.ace-vscode .ace_gutter
+{
+	background: #1E1E1E;
+	color: #D4D4D4;
+}
+
+.ace-vscode .ace_print-margin
+{
+	width: 1px;
+	background: #D4D4D4;
+}
+
+.ace-vscode
+{
+	background-color: #1E1E1E;
+	color: #D4D4D4;
+}
+
+.ace-vscode .ace_cursor
+{
+	color: #D4D4D4;
+}
+
+.ace-vscode .ace_marker-layer .ace_selection
+{
+	background: #264F78;
+}
+
+.ace-vscode.ace_multiselect .ace_selection.ace_start
+{
+	box-shadow: 0 0 3px 0px #272822;
+}
+
+.ace-vscode .ace_marker-layer .ace_step
+{
+	background: rgb(102, 82, 0);
+}
+
+.ace-vscode .ace_marker-layer .ace_bracket
+{
+	margin: -1px 0 0 -1px;
+	border: 1px solid #49483E;
+}
+
+.ace-vscode .ace_marker-layer .ace_active-line
+{
+	background: #252525;
+}
+
+.ace-vscode .ace_gutter-active-line
+{
+	background-color: #252525;
+}
+
+.ace-vscode .ace_marker-layer .ace_selected-word
+{
+	border: 1px solid #49483E;
+}
+
+.ace-vscode .ace_invisible
+{
+	color: #52524D;
+}
+
+.ace-vscode .ace_entity.ace_name.ace_tag, .ace-vscode .ace_keyword, .ace-vscode .ace_meta.ace_tag, .ace-vscode .ace_storage
+{
+	color: #569CD6;
+}
+
+.ace-vscode .ace_punctuation, .ace-vscode .ace_punctuation.ace_tag
+{
+	color: #D4D4D4;
+}
+
+.ace-vscode .ace_constant.ace_character, .ace-vscode .ace_constant.ace_language, .ace-vscode .ace_constant.ace_numeric, .ace-vscode .ace_constant.ace_other
+{
+	color: #B5CEA8;
+}
+
+.ace-vscode .ace_invalid
+{
+	color: #D4D4D4;
+	background-color: #F92672;
+}
+
+.ace-vscode .ace_invalid.ace_deprecated
+{
+	color: #D4D4D4;
+	background-color: #AE81FF;
+}
+
+.ace-vscode .ace_support.ace_constant, .ace-vscode .ace_support.ace_function
+{
+	color: #4EC9B0;
+}
+
+.ace-vscode .ace_fold
+{
+	background-color: #A6E22E;
+	border-color: #D4D4D4;
+}
+
+.ace-vscode .ace_storage.ace_type, .ace-vscode .ace_support.ace_class, .ace-vscode .ace_support.ace_type
+{
+	font-style: italic;
+	color: #4EC9B0;
+}
+
+.ace-vscode .ace_entity.ace_name.ace_function
+{
+	color: #DCDCAA;
+}
+
+.ace-vscode .ace_entity.ace_other, .ace-vscode .ace_entity.ace_other.ace_attribute-name, .ace-vscode .ace_variable
+{
+	color: #9CDCFE;
+}
+
+.ace-vscode .ace_variable.ace_parameter
+{
+	font-style: italic;
+	color: #9CDCFE;
+}
+
+.ace-vscode .ace_string
+{
+	color: #CE9178;
+}
+
+.ace-vscode .ace_comment
+{
+	color: #6A9955;
+}
+
+.ace-vscode .ace_indent-guide
+{
+	background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWPQ0FD0ZXBzd/wPAAjVAoxeSgNeAAAAAElFTkSuQmCC) right repeat-y;
+}
