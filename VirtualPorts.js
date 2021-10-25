@@ -11,4 +11,17 @@ document.addEventListener("loadports", function()
 		VirtualDevice.Drivers.WAITTARGET = new Date();
 		VirtualDevice.Drivers.WAITTARGET.setMilliseconds(VirtualDevice.Drivers.WAITTARGET.getMilliseconds() + value);
 	});
+	VirtualDevice.API.Ports["%TEXT"] = VirtualDevice.CreatePort(function() { return 0; }, function(value)
+	{
+		if (!VirtualDevice.Drivers.TEXTBUFFER) VirtualDevice.Drivers.TEXTBUFFER = "";
+		if (value === 10)
+		{
+			console.log(VirtualDevice.Drivers.TEXTBUFFER);
+			VirtualDevice.Drivers.TEXTBUFFER = "";
+		}
+		else
+		{
+			VirtualDevice.Drivers.TEXTBUFFER += String.fromCharCode(value);
+		}
+	});
 });
