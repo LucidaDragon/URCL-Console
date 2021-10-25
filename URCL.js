@@ -112,6 +112,20 @@ URCL.Operators = {
 			state.O = state.A >> 1;
 		}
 	},
+	INC: {
+		T: "L1OpS1",
+		F: function(state)
+		{
+			state.O = state.A + 1;
+		}
+	},
+	DEC: {
+		T: "L1OpS1",
+		F: function(state)
+		{
+			state.O = state.A - 1;
+		}
+	},
 	NOT: {
 		T: "L1OpS1",
 		F: function(state)
