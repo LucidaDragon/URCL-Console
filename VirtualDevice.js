@@ -33,7 +33,7 @@ VirtualDevice.ExecuteStep = function(context)
 	{
 		context.Program[context.State.IP](context.State);
 		context.State.IP++;
-		return !context.State.Exit;
+		return !(context.State.Exit || context.State.Yield || context.State.Break);
 	}
 	catch (error)
 	{
@@ -51,14 +51,24 @@ VirtualDevice.ExecuteContexts = function()
 	{
 		const context = VirtualDevice.Contexts[i];
 
-		for (let j = 0; j < VirtualDevice.Substeps; j++)
+		if (!context.State.Break && !context.State.Exit)
 		{
-			if (!VirtualDevice.ExecuteStep(context))
+			for (let j = 0; j < VirtualDevice.Substeps; j++)
 			{
-				console.log("Context finished in " + (new Date() - context.StartTime) + "ms");
-				VirtualDevice.Contexts.splice(i, 1);
-				i--;
-				break;
+				if (!VirtualDevice.ExecuteStep(context))
+				{
+					if (context.State.Exit)
+					{
+						console.log("Context " + context.PID + " finished in " + (new Date() - context.StartTime) + "ms");
+						VirtualDevice.Contexts.splice(i, 1);
+						i--;
+					}
+					else
+					{
+						context.State.Yield = false;
+					}
+					break;
+				}
 			}
 		}
 	}

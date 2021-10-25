@@ -2,7 +2,7 @@ URCL = {};
 
 URCL.CreateState = function()
 {
-	return { IP: 0, Memory: {}, Registers: {}, Exit: false, Ports: {} };
+	return { IP: 0, Memory: {}, Registers: {}, Exit: false, Yield: false, Break: false, Ports: {} };
 }
 
 URCL.CreatePort = function(getter, setter)
@@ -239,6 +239,13 @@ URCL.Operators = {
 		F: function(state)
 		{
 			if (state.A >= state.B) state.IP = state.O - 1;
+		}
+	},
+	YIELD: {
+		T: "Op",
+		F: function(state)
+		{
+			state.Yield = true;
 		}
 	}
 };
