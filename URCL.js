@@ -588,7 +588,7 @@ URCL.Compile = function(source)
 		else if (operand[0] === "%")
 		{
 			operandResult.Type = "PORT";
-			operandResult.Value = operand;
+			operandResult.Value = operand.toUpperCase();
 		}
 		else
 		{
