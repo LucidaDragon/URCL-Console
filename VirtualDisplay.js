@@ -199,8 +199,20 @@ function CreateVirtualDisplay(canvasId)
 		VirtualDevice.API.Ports["%COLOR"] = VirtualDevice.CreatePort(function() { return 0; }, function(value) { VirtualDevice.API.SetPixels(VirtualDevice.Drivers.DRAWX || 0, VirtualDevice.Drivers.DRAWY || 0, [value]); });
 		VirtualDevice.API.Ports["%BUFFER"] = VirtualDevice.CreatePort(function() { return 1; }, function(value)
 		{
-			VirtualDevice.API.Draw();
-			VirtualDevice.Drivers.HASDRAWN = true;
+			switch (value)
+			{
+				case 0:
+					VirtualDevice.API.Draw();
+					VirtualDevice.Drivers.ISBUFFERED = false;
+					break;
+				case 1:
+					VirtualDevice.Drivers.ISBUFFERED = true;
+					break;
+				case 2:
+					VirtualDevice.API.Draw();
+					VirtualDevice.Drivers.ISBUFFERED = true;
+					break;
+			}
 		});
 
 		document.dispatchEvent(loadPortsEvent);

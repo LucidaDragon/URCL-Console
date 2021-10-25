@@ -63,10 +63,9 @@ VirtualDevice.ExecuteContexts = function()
 		}
 	}
 
-	if (VirtualDevice.API && VirtualDevice.API.Draw && !VirtualDevice.Drivers.HASDRAWN)
+	if (VirtualDevice.API && VirtualDevice.API.Draw && !VirtualDevice.Drivers.ISBUFFERED)
 	{
 		VirtualDevice.API.Draw();
-		VirtualDevice.Drivers.HASDRAWN = false;
 	}
 
 	if (VirtualDevice.Contexts.length === 0)
