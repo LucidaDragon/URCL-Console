@@ -593,7 +593,7 @@ URCL.Compile = function(source)
 		else
 		{
 			operandResult.Type = "REG";
-			operandResult.Value = operand;
+			operandResult.Value = operand.toUpperCase();
 			const index = parseInt(operand.substr(1, operand.length - 1));
 
 			if ((operand[0] !== "R" && operand[0] !== "r") || isNaN(index) || index < 0)
