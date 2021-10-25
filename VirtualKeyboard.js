@@ -77,8 +77,6 @@ document.addEventListener("loadports", function()
 		{
 			CreateKeyPort(Keys[jsKeys[i]]);
 		}
-
-		console.log(VirtualDevice.API.Ports);
 	}
 
 	document.addEventListener("keydown", function(event)
