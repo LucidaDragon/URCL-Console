@@ -255,6 +255,23 @@ URCL.Operators = {
 			if (state.A >= state.B) state.IP = state.O - 1;
 		}
 	},
+	PSH: {
+		T: "L1Op",
+		F: function(state)
+		{
+			let sp = (((state.Registers["SP"] || 0) - 1) + 0x100000000) & 0xFFFFFFFF;
+			state.Memory[sp] = (state.A + 0x100000000) & 0xFFFFFFFF;
+			state.Registers["SP"] = sp;
+		}
+	},
+	POP: {
+		T: "OpS1",
+		F: function(state)
+		{
+			state.O = state.Memory[state.Registers["SP"] || 0];
+			state.Registers["SP"] = ((state.Registers["SP"] + 1) + 0x100000000) & 0xFFFFFFFF;
+		}
+	},
 	YIELD: {
 		T: "Op",
 		F: function(state)
@@ -504,6 +521,24 @@ URCL.Compile = function(source)
 				f1(state, l1);
 				f2(state, l2);
 				f3(state);
+			};
+		},
+		OpS1: function(op, o)
+		{
+			if (!Validate([o]))
+			{
+				result.error("Invalid URCL Operands: Expected \"" + op + " OUT\".");
+				return null;
+			}
+
+			const s0 = o.Value;
+			const f0 = URCL.Operators[op].F;
+			const f1 = GetStore(o.Type);
+
+			return function(state)
+			{
+				f0(state);
+				f1(state, s0);
 			};
 		},
 		Op: function(op)
