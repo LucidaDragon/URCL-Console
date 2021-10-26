@@ -259,7 +259,7 @@ URCL.Operators = {
 		T: "L1Op",
 		F: function(state)
 		{
-			let sp = (((state.Registers["SP"] || 0) - 1) + 0x100000000) & 0xFFFFFFFF;
+			const sp = (((state.Registers["SP"] || 0) - 1) + 0x100000000) & 0xFFFFFFFF;
 			state.Memory[sp] = (state.A + 0x100000000) & 0xFFFFFFFF;
 			state.Registers["SP"] = sp;
 		}
@@ -269,6 +269,24 @@ URCL.Operators = {
 		F: function(state)
 		{
 			state.O = state.Memory[state.Registers["SP"] || 0];
+			state.Registers["SP"] = ((state.Registers["SP"] + 1) + 0x100000000) & 0xFFFFFFFF;
+		}
+	},
+	CAL: {
+		T: "L1Op",
+		F: function(state)
+		{
+			const sp = (((state.Registers["SP"] || 0) - 1) + 0x100000000) & 0xFFFFFFFF;
+			state.Memory[sp] = (state.IP + 0x100000000) & 0xFFFFFFFF;
+			state.Registers["SP"] = sp;
+			state.IP = ((state.A - 1) + 0x100000000) & 0xFFFFFFFF;
+		}
+	},
+	RET: {
+		T: "Op",
+		F: function(state)
+		{
+			state.IP = state.Memory[state.Registers["SP"] || 0];
 			state.Registers["SP"] = ((state.Registers["SP"] + 1) + 0x100000000) & 0xFFFFFFFF;
 		}
 	},
