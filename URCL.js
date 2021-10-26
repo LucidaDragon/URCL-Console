@@ -739,7 +739,7 @@ URCL.Compile = function(source)
 	}
 	result.Line = undefined;
 
-	result.Valid = result.Errors.length === 0;
+	result.Valid = result.Errors.length === 0 && !invalid;
 
 	return result;
 };
