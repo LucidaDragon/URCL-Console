@@ -39,6 +39,7 @@ VirtualDevice.ExecuteStep = function(context)
 	{
 		console.error("Error during execution: " + error);
 		console.error(context);
+		context.State.Exit = true;
 		return false;
 	}
 };
