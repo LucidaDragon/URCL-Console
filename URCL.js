@@ -663,7 +663,7 @@ URCL.Compile = function(source)
 			operandResult.Value = operand.toUpperCase();
 			const index = parseInt(operand.substr(1, operand.length - 1));
 
-			if ((operand[0] !== "R" && operand[0] !== "r") || isNaN(index) || index < 0)
+			if ((operandResult.Value !== "SP") && ((operand[0] !== "R" && operand[0] !== "r") || isNaN(index) || index < 0))
 			{
 				result.warn("URCL warning: Using non-standard register. \"" + operand + "\"");
 			}
