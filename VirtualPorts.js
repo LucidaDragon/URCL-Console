@@ -24,4 +24,8 @@ document.addEventListener("loadports", function()
 			VirtualDevice.Drivers.TEXTBUFFER += String.fromCharCode(value);
 		}
 	});
+	VirtualDevice.API.Ports["%NUMB"] = VirtualDevice.CreatePort(function() { return 0; }, function(value)
+	{
+		console.log(value);
+	});
 });
