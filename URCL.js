@@ -155,17 +155,17 @@ URCL.Operators = {
 		}
 	},
 	LOD: {
-		T: "L2Op",
+		T: "L1OpS1",
 		F: function(state)
 		{
-			state.A = state.Memory[state.B & 0xFFFFFFFF] || 0;
+			state.O = state.Memory[(state.A + 0x100000000) & 0xFFFFFFFF] || 0;
 		}
 	},
 	STR: {
 		T: "L2Op",
 		F: function(state)
 		{
-			state.Memory[state.A & 0xFFFFFFFF] = state.B & 0xFFFFFFFF;
+			state.Memory[(state.A + 0x100000000) & 0xFFFFFFFF] = (state.B + 0x100000000) & 0xFFFFFFFF;
 		}
 	},
 	IN: {
@@ -379,7 +379,7 @@ URCL.Compile = function(source)
 		const Store = {
 			REG: function(state, target)
 			{
-				state.Registers[target] = (state.O || 0) & 0xFFFFFFFF;
+				state.Registers[target] = ((state.O || 0) + 0x100000000) & 0xFFFFFFFF;
 			},
 			ZERO: function(state, target) {}
 		};
